@@ -22,9 +22,9 @@ def create (switch_type = Hub, host_type = BasicHost, n = 3):
     # Connect the switches
     prev = switches[0]
     for s in switches[1:]:
-      prev.linkTo(s, 4)
+      prev.linkTo(s)
       prev = s
 
 
-
+    
 
