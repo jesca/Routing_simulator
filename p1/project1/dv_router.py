@@ -29,7 +29,7 @@ class DVRouter (Entity):
         elif isinstance(packet, RoutingUpdate):
             self.handleRoutingUpdate(packet)
         else:
-            self.handleData(packet, port)
+            self.handleData(packet)
 
 
     def handleDiscovery(self, dpacket, port):
@@ -49,7 +49,6 @@ class DVRouter (Entity):
             self.dests_dic[dpacket.src] = port
             #add to costs dictionary
             self.costs_dic[dpacket.src] = (dpacket.latency, self)
-
         #get updates from all ports before sending routing update
         if isinstance(dpacket.src, DVRouter):
             #send routingupdate dst, src
@@ -75,9 +74,7 @@ class DVRouter (Entity):
                 if destination is self:
                     self.costs_dic[self] = (0, self)
                 #update cost for destionation if
-                if new_cost > (self.costs_dic[destination])[0]:
-                    pass
-                else:
+                if new_cost < (self.costs_dic[destination])[0]:
                     # A    ->2    B    ->8     C
                     # for A: costs[C] = ( 8 + 2 )
                     # Keep: A dictionary { (C: (10, B)) } ; destination = C, distance = (10, B)
@@ -86,8 +83,24 @@ class DVRouter (Entity):
                 #first time seeing destination; have no shortest path.
                 self.costs_dic[destination] = (new_cost, rpacket.src)
         
+
+        """print "routing update for", self, "from", rpacket.src
         for key in self.costs_dic:
             print "to get to", key, "use route:", self.costs_dic[key]
-    
-    def handleData(self, data_packet, port):
-        pass
+        """
+
+    """
+    Dests_dic: { neighbor, port}
+    Costs_dic: { dest: (cost, neighbor)}
+    """
+    def handleData(self, data_packet):
+        #find the lowest cost route to the src of the data packet using costs dictionary
+        print "current costs dic", self.costs_dic, "for", self
+        #get next neighbor
+        lowest_cost_route = (self.costs_dic[data_packet.dst])[1]
+        #port to get to least cost route exit()
+        if lowest_cost_route == self:
+            port = self.dests_dic[data_packet.dst]
+        else:
+            port = self.dests_dic[lowest_cost_route] 
+        self.send(data_packet, port)
