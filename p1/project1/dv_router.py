@@ -55,7 +55,7 @@ class DVRouter (Entity):
     def handleRoutingUpdate(self, rpacket):
 
         for destination in rpacket.all_dests():
-            new_cost = rpacket.get_distance(destination)[0] + (self.costs_dic[rpacket.src])[0]
+            new_cost = rpacket.get_distance(destination) + (self.costs_dic[rpacket.src])[0]
 
             if destination in self.costs_dic.keys():
                 if destination is self:
@@ -101,7 +101,7 @@ class DVRouter (Entity):
         routing_update.src = src
         routing_update.dst = dst
         for destination in self.costs_dic:
-                routing_update.add_destination(destination,self.costs_dic[destination])
+                routing_update.add_destination(destination,self.costs_dic[destination][0])
 
         self.send(routing_update, port)
 
