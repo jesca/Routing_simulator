@@ -40,18 +40,13 @@ class DVRouter (Entity):
             self.costs_dic[dpacket.src] = (51, self)
             self.removeDistants()
 
-            for neighbor in self.dests_dic:
-                if not isinstance(neighbor, HostEntity):
-                    self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
-
         self.dests_dic[dpacket.src] = port
         #add to costs dictionary
         self.costs_dic[dpacket.src] = (dpacket.latency, self)
-        #get updates from all ports before sending routing update
-        if isinstance(dpacket.src, DVRouter):
-            self.sendRoutingUpdate(self, dpacket.src, port)
-                   
-    
+
+        for neighbor in self.dests_dic:
+            if not isinstance(neighbor, HostEntity):
+                self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
     def handleRoutingUpdate(self, rpacket):
 
         for destination in rpacket.all_dests():
@@ -67,11 +62,9 @@ class DVRouter (Entity):
                     # Keep: A dictionary { (C: (10, B)) } ; destination = C, distance = (10, B)
                     self.costs_dic[destination] = (new_cost, rpacket.src)
                     #since this is modified, send routing updates to neighboring switches
-                    print "changed cost for", self
                     for neighbor in self.dests_dic:
                         if not isinstance(neighbor, HostEntity):
                             self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
-                            print "routing update from", self, "to", neighbor
             else:
                 #first time seeing destination; have no shortest path.
                 self.costs_dic[destination] = (new_cost, rpacket.src)
@@ -81,7 +74,6 @@ class DVRouter (Entity):
 
     def handleData(self, data_packet):
         #find the lowest cost route to the src of the data packet using costs dictionary
-        print "current costs dic", self.costs_dic, "for", self
         #get next neighbor
         if not data_packet.dst in self.costs_dic:
             print "Connection impossible"
