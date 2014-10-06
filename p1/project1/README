@@ -1,35 +1,11 @@
 README
 
-Name: Jessica Wong, Evan Reed
+Jessica Wong, Evan Reed
 
+What challenges did you face in implementing your router? 
+The challenges we faced were dealing with loops and handling router updates.
 
- DVRouter Specification
+Name a feature NOT specified in this specification that would improve your router. 
+Knowledge of when peak hours are from certain hosts, allowing a more even distribution of packets
 
-Write a DVRouter class which inherits from the Entity class. The function that you will need to override
-is handle_rx dealing with the following three types of packets (feel free to add more member functions to
-DVRouter).
-
-• DiscoveryPackets are received by either ends of a link when either the link goes up or the link goes
-down. Your DVRouter should never send or forward DiscoveryPackets
-
-• RoutingUpdates contain the routing information that is received from the neighbours.
-
-• Other packets are data packets which need to be sent on an appropriate port based on switch’s current
-routing table.
-
-
-""" There are three types of packets: 
-    	1. Discovery packets : 
-    	are received by either ends of a 
-    	link when either the link goes up or the link goes down. 
-    	Your DVRouter should never send or forward DiscoveryPackets.
-
-    	2. RoutingUpdates:
-    	contain the routing information that is 
-    	received from the neighbours.
-
-    	3. Data packets:
-    	Other packets are data packets which need to be sent on an 
-    	appropriate port based on switch’s current routing table.
-
-    	"""
+Specify if your code can handle link weights or do incremental updates. If you have implemented any of them, describe what additional considerations need to be taken into.

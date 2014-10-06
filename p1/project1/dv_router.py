@@ -33,26 +33,31 @@ class DVRouter (Entity):
 
 
     def handleDiscovery(self, dpacket, port):
-        #sent from a host
-        if dpacket.is_link_up:
-            if dpacket.src not in self.dests_dic:
-                self.dests_dic[dpacket.src] = port
-                #add to costs dictionary
-                self.costs_dic[dpacket.src] = (dpacket.latency, self)
-        
-        for neighbor in self.dests_dic:
-                        if not isinstance(neighbor, HostEntity):
-                            self.sendRoutingUpdate(self, neighbor, self.dests_dic[neighbor])   
-        #link down?
 
+        """update dictionaries"""
+        #link down
+        if not dpacket.is_link_up or dpacket.latency > 50:
+            self.costs_dic[dpacket.src] = (51, self)
+            self.removeDistants()
+
+            for neighbor in self.dests_dic:
+                if not isinstance(neighbor, HostEntity):
+                    self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
+
+        self.dests_dic[dpacket.src] = port
+        #add to costs dictionary
+        self.costs_dic[dpacket.src] = (dpacket.latency, self)
+        #get updates from all ports before sending routing update
+        if isinstance(dpacket.src, DVRouter):
+            self.sendRoutingUpdate(self, dpacket.src, port)
+                   
     
     def handleRoutingUpdate(self, rpacket):
-        print "update routes for", self
-        for destination in rpacket.all_dests():
 
-            new_cost = rpacket.get_distance(destination) + self.costs_dic[rpacket.src][0]
-            
-            if destination in self.costs_dic:
+        for destination in rpacket.all_dests():
+            new_cost = rpacket.get_distance(destination)[0] + (self.costs_dic[rpacket.src])[0]
+
+            if destination in self.costs_dic.keys():
                 if destination is self:
                     self.costs_dic[self] = (0, self)
 
@@ -73,22 +78,21 @@ class DVRouter (Entity):
                 for neighbor in self.dests_dic:
                     if not isinstance(neighbor, HostEntity):
                         self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
-        print ": ", self.costs_dic
 
-    """
-    Dests_dic: { neighbor, port}
-    Costs_dic: { dest: (cost, neighbor)}
-    """
     def handleData(self, data_packet):
         #find the lowest cost route to the src of the data packet using costs dictionary
+        print "current costs dic", self.costs_dic, "for", self
         #get next neighbor
-        lowest_cost_route = (self.costs_dic[data_packet.dst])[1]
-        #port to get to least cost route exit()
-        if lowest_cost_route == self:
-            port = self.dests_dic[data_packet.dst]
+        if not data_packet.dst in self.costs_dic:
+            print "Connection impossible"
         else:
-            port = self.dests_dic[lowest_cost_route] 
-        self.send(data_packet, port)
+            lowest_cost_route = (self.costs_dic[data_packet.dst])[1]
+            #port to get to least cost route exit()
+            if lowest_cost_route == self:
+                port = self.dests_dic[data_packet.dst]
+            else:
+                port = self.dests_dic[lowest_cost_route] 
+            self.send(data_packet, port)
 
 
     """Helper methods"""
@@ -97,6 +101,32 @@ class DVRouter (Entity):
         routing_update.src = src
         routing_update.dst = dst
         for destination in self.costs_dic:
-                routing_update.add_destination(destination,self.costs_dic[destination][0])
+                routing_update.add_destination(destination,self.costs_dic[destination])
 
         self.send(routing_update, port)
+
+
+    def removeDistants(node):
+        directConnections = {}
+        directCosts = {}
+        indirectConnections = {}
+
+        for connection in node.costs_dic:
+            if (node.costs_dic[connection])[0] > 1:
+                indirectConnections[connection] = node.costs_dic[connection]
+            else:
+                if connection in node.dests_dic:
+                    directConnections[connection] = node.dests_dic[connection]
+                directCosts[connection] = node.costs_dic[connection][0], connection
+
+
+
+        if len(indirectConnections) > 0:
+            node.dests_dic = directConnections
+            node.costs_dic = directCosts
+            for directConnection in node.costs_dic:
+                if isinstance(directConnection, DVRouter):
+                    directConnection.removeDistants()
+
+            
+
