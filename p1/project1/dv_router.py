@@ -29,7 +29,6 @@ class DVRouter (Entity):
         elif isinstance(packet, RoutingUpdate):
             self.handleRoutingUpdate(packet)
         else:
-            #is a data packet
             self.handleData(packet, port)
 
 
@@ -91,9 +90,7 @@ class DVRouter (Entity):
         
         print "routing update for", self
         for key in self.costs_dic:
-            print "key", key, "cost", self.costs_dic[key]
+            print "to get to", key, "use route:", self.costs_dic[key]
     
-    def handleData(self, packet, port):
-        print "packet trace", packet.trace
-        print "latency", packet.latency
+    def handleData(self, data_packet, port):
         pass
