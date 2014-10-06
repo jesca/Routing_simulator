@@ -51,43 +51,40 @@ class DVRouter (Entity):
             self.costs_dic[dpacket.src] = (dpacket.latency, self)
         #get updates from all ports before sending routing update
         if isinstance(dpacket.src, DVRouter):
-            #send routingupdate dst, src
-            routing_update = RoutingUpdate()
-            routing_update.src = self
-            routing_update.dst = dpacket.src
-            for destination in self.costs_dic:
-                routing_update.add_destination(destination,self.costs_dic[destination])
-            self.send(routing_update, port)            
-
-        #change packet source every time a destinationPacket exits a switch (source no longer host)
-        dpacket.src=self
-        self.send(dpacket, port, flood=True)
-        
+            self.sendRoutingUpdate(self, dpacket.src, port)
+                   
         #link down?
 
     
     def handleRoutingUpdate(self, rpacket):
-
         for destination in rpacket.all_dests():
             new_cost = rpacket.get_distance(destination)[0] + (self.costs_dic[rpacket.src])[0]
-            if destination in self.costs_dic:
+            
+            if destination in self.costs_dic.keys():
                 if destination is self:
                     self.costs_dic[self] = (0, self)
-                #update cost for destionation if
+
                 if new_cost < (self.costs_dic[destination])[0]:
                     # A    ->2    B    ->8     C
                     # for A: costs[C] = ( 8 + 2 )
                     # Keep: A dictionary { (C: (10, B)) } ; destination = C, distance = (10, B)
                     self.costs_dic[destination] = (new_cost, rpacket.src)
+                    #since this is modified, send routing updates to neighboring switches
+                    print "changed cost for", self
+                    for neighbor in self.dests_dic:
+                        if not isinstance(neighbor, HostEntity):
+                            self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
+                            print "routing update from", self, "to", neighbor
             else:
                 #first time seeing destination; have no shortest path.
                 self.costs_dic[destination] = (new_cost, rpacket.src)
-        
+                for neighbor in self.dests_dic:
+                    if not isinstance(neighbor, HostEntity):
+                        self.sendRoutingUpdate(self,neighbor,self.dests_dic[neighbor])
 
-        """print "routing update for", self, "from", rpacket.src
-        for key in self.costs_dic:
-            print "to get to", key, "use route:", self.costs_dic[key]
-        """
+
+        #print "routing update for", self, "\n", self.costs_dic
+        
 
     """
     Dests_dic: { neighbor, port}
@@ -104,3 +101,14 @@ class DVRouter (Entity):
         else:
             port = self.dests_dic[lowest_cost_route] 
         self.send(data_packet, port)
+
+
+    """Helper methods"""
+    def sendRoutingUpdate(self, src, dst, port):
+        routing_update = RoutingUpdate()
+        routing_update.src = src
+        routing_update.dst = dst
+        for destination in self.costs_dic:
+                routing_update.add_destination(destination,self.costs_dic[destination])
+
+        self.send(routing_update, port)
